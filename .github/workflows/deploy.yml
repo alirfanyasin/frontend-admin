@@ -36,32 +36,32 @@ jobs:
           command: |
             export PATH=$PATH:/www/server/nvm/versions/node/v22.18.0/bin
             cd /www/wwwroot/frontend-admin
-            echo "📂 Sekarang ada di: $(pwd)"
+            echo "Sekarang ada di: $(pwd)"
 
-            echo "📝 Membuat .env.production..."
+            echo "Membuat .env.production..."
             cat > .env.production <<EOL
             NEXT_PUBLIC_BASE_URL=${{ secrets.NEXT_PUBLIC_BASE_URL }}
             NEXT_PUBLIC_BISSA_KERJA_API_URL=${{ secrets.NEXT_PUBLIC_BISSA_KERJA_API_URL }}
             EOL
 
-            echo "🗑️ Menghapus folder .next lama..."
+            echo "Menghapus folder .next lama..."
             rm -rf .next
 
-             echo "🗑️ Menghapus folder .next lama..."
+             echo "Menghapus folder .next lama..."
             rm -rf node_modules
 
-            echo "📦 Install dependency (production)..."
+            echo "Install dependency (production)..."
             npm install --production
 
-            echo "🏗️ Build Next.js..."
+            echo "Build Next.js..."
             npm run build
 
-            echo "⏹️ Stop PM2 lama..."
+            echo "Stop PM2 lama..."
             pm2 stop frontend-admin || true
             pm2 delete frontend-admin || true
 
-            echo "🚀 Start ulang PM2..."
+            echo "Start ulang PM2..."
             pm2 start npm --name "frontend-admin" -- run start
             pm2 save
 
-            echo "✅ Deploy selesai!"
+            echo "Deploy selesai!"
