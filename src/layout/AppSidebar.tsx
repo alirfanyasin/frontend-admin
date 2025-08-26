@@ -20,6 +20,9 @@ import {
   ClipboardList,
   Send,
   FileCheck,
+  Briefcase,
+  UserCheck,
+  Accessibility, // Icon untuk menu Disabilitas
 } from "lucide-react";
 import AppSidebarSkeleton from "@/skeleton/AppSidebarSkeleton";
 
@@ -79,6 +82,24 @@ const MAIN_MENU_ITEMS: NavItem[] = [
     icon: <FileBarChart size={20} />,
     name: "Laporan",
     path: "/reports",
+    allowedRoles: ["admin", "superadmin"],
+  },
+  {
+    icon: <Accessibility size={20} />,
+    name: "Disabilitas",
+    path: "/disabilitas",
+    allowedRoles: ["superadmin"],
+  },
+  {
+    icon: <Briefcase size={20} />,
+    name: "Data Lowongan",
+    path: "/data-lowongan",
+    allowedRoles: ["admin", "superadmin"],
+  },
+  {
+    icon: <UserCheck size={20} />,
+    name: "Data Pelamar",
+    path: "/data-pelamar",
     allowedRoles: ["admin", "superadmin"],
   },
 ];
@@ -223,14 +244,14 @@ const AppSidebar: React.FC = () => {
           <>
             <Image
               className="dark:hidden"
-              src="/images/logo/logo.svg"
+              src="/images/logo/jatimbissa.png"
               alt="Logo"
               width={150}
               height={40}
             />
             <Image
               className="hidden dark:block"
-              src="/images/logo/logo-dark.svg"
+              src="/images/logo/jatimbissa.png"
               alt="Logo"
               width={150}
               height={40}
@@ -238,7 +259,7 @@ const AppSidebar: React.FC = () => {
           </>
         ) : (
           <Image
-            src="/images/logo/logo-icon.svg"
+            src="/images/logo/jatimbissa.png"
             alt="Logo"
             width={32}
             height={32}
