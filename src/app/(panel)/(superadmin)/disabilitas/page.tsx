@@ -33,9 +33,9 @@ interface FormData {
 }
 
 // ========================
-// MOCK DATA
+// INITIAL MOCK DATA
 // ========================
-const MOCK_DATA: DisabilitasItem[] = [
+const INITIAL_MOCK_DATA: DisabilitasItem[] = [
   {
     id: "1",
     kategori_disabilitas: "Tuna Netra",
@@ -125,15 +125,32 @@ const MOCK_DATA: DisabilitasItem[] = [
 const TINGKAT_OPTIONS = ["Ringan", "Sedang", "Berat"];
 
 // ========================
+// STORAGE SIMULATION
+// ========================
+// Simulasi penyimpanan menggunakan variable global
+let globalDataStore: DisabilitasItem[] = [...INITIAL_MOCK_DATA];
+
+const saveToStorage = (data: DisabilitasItem[]) => {
+  globalDataStore = [...data];
+  // Simulasi API call untuk menyimpan data
+  console.log('Data saved to persistent storage:', data);
+};
+
+const loadFromStorage = (): DisabilitasItem[] => {
+  // Simulasi loading dari persistent storage
+  return [...globalDataStore];
+};
+
+// ========================
 // MAIN COMPONENT
 // ========================
 const MenuDisabilitasPage: React.FC = () => {
   // ========================
   // STATE MANAGEMENT
   // ========================
-  const [data, setData] = useState<DisabilitasItem[]>(MOCK_DATA);
-  const [filteredData, setFilteredData] = useState<DisabilitasItem[]>(MOCK_DATA);
-  const [loading, setLoading] = useState(false);
+  const [data, setData] = useState<DisabilitasItem[]>([]);
+  const [filteredData, setFilteredData] = useState<DisabilitasItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("all");
   
@@ -157,6 +174,27 @@ const MenuDisabilitasPage: React.FC = () => {
   // ========================
   // EFFECTS
   // ========================
+  useEffect(() => {
+    // Load data from persistent storage on component mount
+    const loadData = () => {
+      setLoading(true);
+      try {
+        const savedData = loadFromStorage();
+        setData(savedData);
+        setFilteredData(savedData);
+      } catch (error) {
+        console.error('Error loading data:', error);
+        // Fallback to initial mock data if loading fails
+        setData(INITIAL_MOCK_DATA);
+        setFilteredData(INITIAL_MOCK_DATA);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, []);
+
   useEffect(() => {
     let filtered = data;
 
@@ -276,7 +314,12 @@ const MenuDisabilitasPage: React.FC = () => {
       updatedAt: new Date().toISOString()
     };
 
-    setData(prev => [...prev, newItem]);
+    const updatedData = [...data, newItem];
+    setData(updatedData);
+    
+    // Save to persistent storage
+    saveToStorage(updatedData);
+    
     setShowAddModal(false);
     resetForm();
   };
@@ -286,11 +329,16 @@ const MenuDisabilitasPage: React.FC = () => {
     
     if (!validateForm() || !selectedItem) return;
 
-    setData(prev => prev.map(item => 
+    const updatedData = data.map(item => 
       item.id === selectedItem.id 
         ? { ...item, ...formData, updatedAt: new Date().toISOString() }
         : item
-    ));
+    );
+    
+    setData(updatedData);
+    
+    // Save to persistent storage
+    saveToStorage(updatedData);
 
     setShowEditModal(false);
     setSelectedItem(null);
@@ -313,7 +361,12 @@ const MenuDisabilitasPage: React.FC = () => {
 
   const confirmDelete = () => {
     if (selectedItem) {
-      setData(prev => prev.filter(item => item.id !== selectedItem.id));
+      const updatedData = data.filter(item => item.id !== selectedItem.id);
+      setData(updatedData);
+      
+      // Save to persistent storage
+      saveToStorage(updatedData);
+      
       setShowDeleteModal(false);
       setSelectedItem(null);
     }
@@ -395,13 +448,12 @@ const MenuDisabilitasPage: React.FC = () => {
             <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
             <input
               type="text"
-              placeholder="Cari kategori, email, provinsi, atau kabupaten..."
+              placeholder="Cari kategori"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 transition-all duration-200"
             />
           </div>
-
           <div className="relative">
             <Filter size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
             <select
@@ -648,7 +700,7 @@ const MenuDisabilitasPage: React.FC = () => {
   // ========================
   const renderAddModal = () => (
     showAddModal && (
-      <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="fixed inset-0 backdrop-blur-sm z-50 flex items-center justify-center p-4">
         <div className="bg-white dark:bg-gray-800 rounded-xl w-full max-w-md shadow-2xl border border-gray-200 dark:border-gray-700">
           <div className="p-6">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">
@@ -723,7 +775,7 @@ const MenuDisabilitasPage: React.FC = () => {
 
   const renderEditModal = () => (
     showEditModal && (
-      <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="fixed inset-0 backdrop-blur-sm z-50 flex items-center justify-center p-4">
         <div className="bg-white dark:bg-gray-800 rounded-xl w-full max-w-md shadow-2xl border border-gray-200 dark:border-gray-700">
           <div className="p-6">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">
@@ -799,7 +851,7 @@ const MenuDisabilitasPage: React.FC = () => {
 
   const renderDeleteModal = () => (
     showDeleteModal && selectedItem && (
-      <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="fixed inset-0 backdrop-blur-sm z-50 flex items-center justify-center p-4">
         <div className="bg-white dark:bg-gray-800 rounded-xl w-full max-w-md shadow-2xl border border-gray-200 dark:border-gray-700">
           <div className="p-6">
             <div className="flex items-center mb-4">
