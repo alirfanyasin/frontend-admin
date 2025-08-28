@@ -163,7 +163,10 @@ const JobListingSkeleton = ({ cardCount = 9 }: { cardCount?: number }) => (
     {/* Stats Skeleton */}
     <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
       {Array.from({ length: 4 }, (_, index) => (
-        <div key={index} className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+        <div
+          key={index}
+          className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-4"
+        >
           <div className="flex items-center">
             <PulseEffect className="w-8 h-8 rounded mr-3" />
             <div className="space-y-2 flex-1">
@@ -202,7 +205,8 @@ const EmptyState = ({ onRefresh }: { onRefresh: () => void }) => (
         Tidak Ada Lowongan Pekerjaan
       </h3>
       <p className="text-gray-600 dark:text-gray-400 mb-6 text-sm leading-relaxed">
-        Saat ini belum ada lowongan pekerjaan yang tersedia. Silakan coba lagi nanti atau hubungi administrator.
+        Saat ini belum ada lowongan pekerjaan yang tersedia. Silakan coba lagi
+        nanti atau hubungi administrator.
       </p>
       <button
         onClick={onRefresh}
@@ -226,7 +230,10 @@ export default function DataLowonganPage() {
   const [selectedIndustry, setSelectedIndustry] = useState<string>("");
 
   // Helper function to get company logo URL
-  const getCompanyLogoUrl = (logo: string | null, companyName: string): string => {
+  const getCompanyLogoUrl = (
+    logo: string | null,
+    companyName: string
+  ): string => {
     if (logo && logo.trim() !== "") {
       return `${process.env.NEXT_PUBLIC_BASE_URL}/storage/${logo}`;
     }
@@ -241,7 +248,7 @@ export default function DataLowonganPage() {
       setError(null);
 
       let response;
-      
+
       // Try multiple possible endpoints
       const possibleEndpoints = [
         "/job-vacancies", // Most common REST endpoint
@@ -251,11 +258,11 @@ export default function DataLowonganPage() {
         "/company/job-vacancies/all", // All company vacancies
         "/api/job-vacancies", // With API prefix
         "/jobs", // Simple jobs endpoint
-        "/job-vacancies/all" // Original endpoint
+        "/job-vacancies/all", // Original endpoint
       ];
 
       let lastError = null;
-      
+
       for (const endpoint of possibleEndpoints) {
         try {
           console.log(`Trying endpoint: ${endpoint}`);
@@ -272,7 +279,9 @@ export default function DataLowonganPage() {
       // If all endpoints failed, use fallback or throw error
       if (!response) {
         // Development fallback: Create dummy data
-        console.warn("All API endpoints failed. Using dummy data for development.");
+        console.warn(
+          "All API endpoints failed. Using dummy data for development."
+        );
         const dummyData: JobVacancy[] = [
           {
             id: 1,
@@ -318,7 +327,7 @@ export default function DataLowonganPage() {
               status_verifikasi: "verified",
               user_id: 1,
               created_at: "2024-01-01",
-              updated_at: "2024-01-01"
+              updated_at: "2024-01-01",
             },
             disabilitas: [
               {
@@ -329,12 +338,12 @@ export default function DataLowonganPage() {
                 updated_at: "2024-01-01",
                 pivot: {
                   post_lowongan_id: 1,
-                  disabilitas_id: 1
-                }
-              }
+                  disabilitas_id: 1,
+                },
+              },
             ],
             created_at: "2024-08-01",
-            updated_at: "2024-08-01"
+            updated_at: "2024-08-01",
           },
           {
             id: 2,
@@ -380,14 +389,14 @@ export default function DataLowonganPage() {
               status_verifikasi: "pending",
               user_id: 2,
               created_at: "2024-02-01",
-              updated_at: "2024-02-01"
+              updated_at: "2024-02-01",
             },
             disabilitas: [],
             created_at: "2024-08-15",
-            updated_at: "2024-08-15"
-          }
+            updated_at: "2024-08-15",
+          },
         ];
-        
+
         setJobs(dummyData);
         setFilteredJobs(dummyData);
         return;
@@ -399,7 +408,10 @@ export default function DataLowonganPage() {
       } else {
         setJobs([]);
         setFilteredJobs([]);
-        console.log("API returned unsuccessful response:", response.data.message);
+        console.log(
+          "API returned unsuccessful response:",
+          response.data.message
+        );
       }
     } catch (err) {
       console.error("Error fetching jobs:", err);
@@ -413,18 +425,30 @@ export default function DataLowonganPage() {
           setJobs([]);
           setFilteredJobs([]);
         } else if (axiosError.response?.status === 500) {
-          setError("Server sedang mengalami gangguan. Tim IT sedang memperbaiki masalah ini. Silakan coba lagi dalam beberapa menit.");
+          setError(
+            "Server sedang mengalami gangguan. Tim IT sedang memperbaiki masalah ini. Silakan coba lagi dalam beberapa menit."
+          );
         } else if (axiosError.response?.status === 401) {
-          setError("Sesi Anda telah berakhir. Silakan login kembali untuk melihat data lowongan pekerjaan.");
+          setError(
+            "Sesi Anda telah berakhir. Silakan login kembali untuk melihat data lowongan pekerjaan."
+          );
         } else if (axiosError.response?.status === 403) {
-          setError("Anda tidak memiliki akses untuk melihat data lowongan ini. Hubungi administrator jika diperlukan.");
+          setError(
+            "Anda tidak memiliki akses untuk melihat data lowongan ini. Hubungi administrator jika diperlukan."
+          );
         } else if (!axiosError.response) {
-          setError("Tidak dapat terhubung ke server. Pastikan koneksi internet Anda stabil dan coba lagi.");
+          setError(
+            "Tidak dapat terhubung ke server. Pastikan koneksi internet Anda stabil dan coba lagi."
+          );
         } else {
-          setError(`Terjadi kesalahan saat mengambil data (Error ${axiosError.response?.status}). Silakan coba lagi atau hubungi support.`);
+          setError(
+            `Terjadi kesalahan saat mengambil data (Error ${axiosError.response?.status}). Silakan coba lagi atau hubungi support.`
+          );
         }
       } else {
-        setError("Terjadi kesalahan yang tidak diketahui. Silakan refresh halaman atau coba lagi nanti.");
+        setError(
+          "Terjadi kesalahan yang tidak diketahui. Silakan refresh halaman atau coba lagi nanti."
+        );
       }
     } finally {
       setLoading(false);
@@ -440,8 +464,12 @@ export default function DataLowonganPage() {
       filtered = filtered.filter(
         (job) =>
           job.job_title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          job.perusahaan_profile.nama_perusahaan.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          job.skills.some(skill => skill.toLowerCase().includes(searchTerm.toLowerCase()))
+          job.perusahaan_profile.nama_perusahaan
+            .toLowerCase()
+            .includes(searchTerm.toLowerCase()) ||
+          job.skills.some((skill) =>
+            skill.toLowerCase().includes(searchTerm.toLowerCase())
+          )
       );
     }
 
@@ -454,15 +482,17 @@ export default function DataLowonganPage() {
 
     // Job type filter
     if (selectedJobType) {
-      filtered = filtered.filter((job) =>
-        job.job_type.toLowerCase() === selectedJobType.toLowerCase()
+      filtered = filtered.filter(
+        (job) => job.job_type.toLowerCase() === selectedJobType.toLowerCase()
       );
     }
 
     // Industry filter
     if (selectedIndustry) {
       filtered = filtered.filter((job) =>
-        job.perusahaan_profile.industri.toLowerCase().includes(selectedIndustry.toLowerCase())
+        job.perusahaan_profile.industri
+          .toLowerCase()
+          .includes(selectedIndustry.toLowerCase())
       );
     }
 
@@ -496,15 +526,25 @@ export default function DataLowonganPage() {
   };
 
   // Get unique values for filters
-  const uniqueLocations = [...new Set(jobs.map(job => job.location.split(",")[0].trim()))];
-  const uniqueJobTypes = [...new Set(jobs.map(job => job.job_type))];
-  const uniqueIndustries = [...new Set(jobs.map(job => job.perusahaan_profile.industri))];
+  const uniqueLocations = [
+    ...new Set(jobs.map((job) => job.location.split(",")[0].trim())),
+  ];
+  const uniqueJobTypes = [...new Set(jobs.map((job) => job.job_type))];
+  const uniqueIndustries = [
+    ...new Set(jobs.map((job) => job.perusahaan_profile.industri)),
+  ];
 
   // Calculate stats
   const totalJobs: number = jobs.length;
-  const totalCompanies: number = [...new Set(jobs.map(job => job.perusahaan_profile.id))].length;
-  const uniqueCities: number = [...new Set(jobs.map(job => job.location.split(",")[0].trim()))].length;
-  const activeJobs: number = jobs.filter(job => calculateDaysRemaining(job.application_deadline) > 0).length;
+  const totalCompanies: number = [
+    ...new Set(jobs.map((job) => job.perusahaan_profile.id)),
+  ].length;
+  const uniqueCities: number = [
+    ...new Set(jobs.map((job) => job.location.split(",")[0].trim())),
+  ].length;
+  const activeJobs: number = jobs.filter(
+    (job) => calculateDaysRemaining(job.application_deadline) > 0
+  ).length;
 
   // Error state
   if (error) {
@@ -517,7 +557,9 @@ export default function DataLowonganPage() {
             desc="Terjadi kesalahan saat memuat data"
           >
             <div className="flex flex-col justify-center items-center py-16 text-center">
-              <div className="text-red-500 text-lg font-medium mb-4">{error}</div>
+              <div className="text-red-500 text-lg font-medium mb-4">
+                {error}
+              </div>
               <button
                 onClick={handleRetry}
                 className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
@@ -686,8 +728,12 @@ export default function DataLowonganPage() {
 
                 {/* Filter Results Info */}
                 <div className="text-sm text-gray-600 dark:text-gray-400">
-                  Menampilkan {filteredJobs.length} dari {totalJobs} lowongan pekerjaan
-                  {(searchTerm || selectedLocation || selectedJobType || selectedIndustry) && (
+                  Menampilkan {filteredJobs.length} dari {totalJobs} lowongan
+                  pekerjaan
+                  {(searchTerm ||
+                    selectedLocation ||
+                    selectedJobType ||
+                    selectedIndustry) && (
                     <button
                       onClick={() => {
                         setSearchTerm("");
@@ -706,7 +752,9 @@ export default function DataLowonganPage() {
               {/* Job Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredJobs.map((job: JobVacancy) => {
-                  const daysRemaining: number = calculateDaysRemaining(job.application_deadline);
+                  const daysRemaining: number = calculateDaysRemaining(
+                    job.application_deadline
+                  );
                   const skills: string[] = job.skills.slice(0, 4);
                   const isExpired = daysRemaining <= 0;
 
@@ -840,7 +888,10 @@ export default function DataLowonganPage() {
                               <span className="text-xs text-blue-700 dark:text-blue-300">
                                 Mendukung{" "}
                                 {job.disabilitas
-                                  .map((d: DisabilitasType) => d.kategori_disabilitas)
+                                  .map(
+                                    (d: DisabilitasType) =>
+                                      d.kategori_disabilitas
+                                  )
                                   .join(", ")}{" "}
                                 disabilitas
                               </span>
@@ -850,7 +901,7 @@ export default function DataLowonganPage() {
                       </div>
 
                       {/* Deadline and Company Verification Status */}
-                      <div className="flex items-center justify-between mb-4">
+                      {/* <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center space-x-2">
                           <div
                             className={`px-2 py-1 rounded-full text-xs font-medium ${getDeadlineColorClass(
@@ -873,7 +924,7 @@ export default function DataLowonganPage() {
                         >
                           {formatDate(job.application_deadline)}
                         </time>
-                      </div>
+                      </div> */}
                     </article>
                   );
                 })}
@@ -887,7 +938,8 @@ export default function DataLowonganPage() {
                     Tidak Ada Hasil Ditemukan
                   </h3>
                   <p className="text-gray-600 dark:text-gray-400 mb-6">
-                    Coba ubah kata kunci pencarian atau filter yang Anda gunakan.
+                    Coba ubah kata kunci pencarian atau filter yang Anda
+                    gunakan.
                   </p>
                   <button
                     onClick={() => {

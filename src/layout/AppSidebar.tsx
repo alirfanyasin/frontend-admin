@@ -78,12 +78,12 @@ const MAIN_MENU_ITEMS: NavItem[] = [
     path: "/management-user",
     allowedRoles: ["superadmin", "admin"],
   },
-  {
-    icon: <FileBarChart size={20} />,
-    name: "Laporan",
-    path: "/reports",
-    allowedRoles: ["admin", "superadmin"],
-  },
+  // {
+  //   icon: <FileBarChart size={20} />,
+  //   name: "Laporan",
+  //   path: "/reports",
+  //   allowedRoles: ["admin", "superadmin"],
+  // },
   {
     icon: <Accessibility size={20} />,
     name: "Disabilitas",
@@ -163,7 +163,7 @@ const AppSidebar: React.FC = () => {
   };
 
   const getContentAlignment = () => {
-    return !isExpanded && !isHovered ? "lg:justify-center" : "justify-start";
+    return !isExpanded && !isHovered ? "lg:justify-center" : "justify-center";
   };
 
   const shouldShowText = () => {
@@ -238,20 +238,22 @@ const AppSidebar: React.FC = () => {
   // RENDER FUNCTIONS
   // ========================
   const renderLogo = () => (
-    <div className={`py-8 flex ${getContentAlignment()}`}>
-      <Link href="/">
+    <div
+      className={`py-8 flex items-center justify-center ${getContentAlignment()}`}
+    >
+      <Link href="/" className=" ">
         {shouldShowText() ? (
           <>
             <Image
               className="dark:hidden"
-              src="/images/logo/jatimbissa.png"
+              src="/images/logo/jatimbissa.webp"
               alt="Logo"
-              width={150}
-              height={40}
+              width={100}
+              height={20}
             />
             <Image
               className="hidden dark:block"
-              src="/images/logo/jatimbissa.png"
+              src="/images/logo/jatimbissa.webp"
               alt="Logo"
               width={150}
               height={40}
@@ -259,7 +261,7 @@ const AppSidebar: React.FC = () => {
           </>
         ) : (
           <Image
-            src="/images/logo/jatimbissa.png"
+            src="/images/logo/jatimbissa.webp"
             alt="Logo"
             width={32}
             height={32}
