@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { 
   Plus, 
   Search, 
@@ -20,11 +20,11 @@ import {
 // TYPES & INTERFACES
 // ========================
 interface DisabilitasItem {
-  id: string;
+  id: number;
   kategori_disabilitas: string;
   tingkat_disabilitas: string;
-  createdAt: string;
-  updatedAt: string;
+  created_at: string;
+  updated_at: string;
 }
 
 interface FormData {
@@ -32,113 +32,112 @@ interface FormData {
   tingkat_disabilitas: string;
 }
 
-// ========================
-// INITIAL MOCK DATA
-// ========================
-const INITIAL_MOCK_DATA: DisabilitasItem[] = [
-  {
-    id: "1",
-    kategori_disabilitas: "Tuna Netra",
-    tingkat_disabilitas: "Sedang",
-    createdAt: "2025-08-15T10:30:00Z",
-    updatedAt: "2025-08-15T10:30:00Z"
-  },
-  {
-    id: "2",
-    kategori_disabilitas: "Tuna Daksa",
-    tingkat_disabilitas: "Ringan",
-    createdAt: "2025-08-16T14:20:00Z",
-    updatedAt: "2025-08-16T14:20:00Z"
-  },
-  {
-    id: "3",
-    kategori_disabilitas: "Tuna Rungu",
-    tingkat_disabilitas: "Berat",
-    createdAt: "2025-08-17T09:15:00Z",
-    updatedAt: "2025-08-17T09:15:00Z"
-  },
-  {
-    id: "4",
-    kategori_disabilitas: "Tuna Grahita",
-    tingkat_disabilitas: "Ringan",
-    createdAt: "2025-08-18T11:45:00Z",
-    updatedAt: "2025-08-18T11:45:00Z"
-  },
-  {
-    id: "5",
-    kategori_disabilitas: "Tuna Laras",
-    tingkat_disabilitas: "Sedang",
-    createdAt: "2025-08-19T16:20:00Z",
-    updatedAt: "2025-08-19T16:20:00Z"
-  },
-  {
-    id: "6",
-    kategori_disabilitas: "Tuna Wicara",
-    tingkat_disabilitas: "Berat",
-    createdAt: "2025-08-20T08:30:00Z",
-    updatedAt: "2025-08-20T08:30:00Z"
-  },
-  {
-    id: "7",
-    kategori_disabilitas: "Autis",
-    tingkat_disabilitas: "Ringan",
-    createdAt: "2025-08-21T13:15:00Z",
-    updatedAt: "2025-08-21T13:15:00Z"
-  },
-  {
-    id: "8",
-    kategori_disabilitas: "Down Syndrome",
-    tingkat_disabilitas: "Sedang",
-    createdAt: "2025-08-22T15:45:00Z",
-    updatedAt: "2025-08-22T15:45:00Z"
-  },
-  {
-    id: "9",
-    kategori_disabilitas: "Cerebral Palsy",
-    tingkat_disabilitas: "Berat",
-    createdAt: "2025-08-23T11:20:00Z",
-    updatedAt: "2025-08-23T11:20:00Z"
-  },
-  {
-    id: "10",
-    kategori_disabilitas: "Tuna Ganda",
-    tingkat_disabilitas: "Berat",
-    createdAt: "2025-08-24T09:40:00Z",
-    updatedAt: "2025-08-24T09:40:00Z"
-  },
-  {
-    id: "11",
-    kategori_disabilitas: "ADHD",
-    tingkat_disabilitas: "Ringan",
-    createdAt: "2025-08-25T14:10:00Z",
-    updatedAt: "2025-08-25T14:10:00Z"
-  },
-  {
-    id: "12",
-    kategori_disabilitas: "Disleksia",
-    tingkat_disabilitas: "Sedang",
-    createdAt: "2025-08-26T10:55:00Z",
-    updatedAt: "2025-08-26T10:55:00Z"
-  }
-];
+interface Statistics {
+  total: number;
+  ringan: number;
+  sedang: number;
+  berat: number;
+}
 
+interface ApiResponse {
+  success: boolean;
+  message: string;
+  data?: any;
+  errors?: Record<string, string[]>;
+  statistics?: Statistics;
+  tingkat_options?: string[];
+}
+
+// ========================
+// CONSTANTS
+// ========================
 const TINGKAT_OPTIONS = ["Ringan", "Sedang", "Berat"];
+const API_BASE_URL = "http://localhost:8000/api/disability"; // Laravel development server
 
 // ========================
-// STORAGE SIMULATION
+// API FUNCTIONS
 // ========================
-// Simulasi penyimpanan menggunakan variable global
-let globalDataStore: DisabilitasItem[] = [...INITIAL_MOCK_DATA];
+const api = {
+  async get(url: string, params?: Record<string, any>) {
+    const queryString = params ? '?' + new URLSearchParams(params).toString() : '';
+    const response = await fetch(`${API_BASE_URL}${url}${queryString}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        // Add authentication headers if needed
+        // 'Authorization': `Bearer ${token}`,
+      },
+    });
 
-const saveToStorage = (data: DisabilitasItem[]) => {
-  globalDataStore = [...data];
-  // Simulasi API call untuk menyimpan data
-  console.log('Data saved to persistent storage:', data);
-};
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
 
-const loadFromStorage = (): DisabilitasItem[] => {
-  // Simulasi loading dari persistent storage
-  return [...globalDataStore];
+    return response.json();
+  },
+
+  async post(url: string, data: any) {
+    const response = await fetch(`${API_BASE_URL}${url}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        // Add authentication headers if needed
+        // 'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(data),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw result;
+    }
+
+    return result;
+  },
+
+  async put(url: string, data: any) {
+    const response = await fetch(`${API_BASE_URL}${url}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        // Add authentication headers if needed
+        // 'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(data),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw result;
+    }
+
+    return result;
+  },
+
+  async delete(url: string) {
+    const response = await fetch(`${API_BASE_URL}${url}`, {
+      method: 'POST', // Using POST as per your route definition
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        // Add authentication headers if needed
+        // 'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw result;
+    }
+
+    return result;
+  }
 };
 
 // ========================
@@ -149,14 +148,21 @@ const MenuDisabilitasPage: React.FC = () => {
   // STATE MANAGEMENT
   // ========================
   const [data, setData] = useState<DisabilitasItem[]>([]);
-  const [filteredData, setFilteredData] = useState<DisabilitasItem[]>([]);
+  const [statistics, setStatistics] = useState<Statistics>({
+    total: 0,
+    ringan: 0,
+    sedang: 0,
+    berat: 0
+  });
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedFilter, setSelectedFilter] = useState("all");
   
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const [itemsPerPage] = useState(10);
+  const [totalItems, setTotalItems] = useState(0);
   
   // Modal states
   const [showAddModal, setShowAddModal] = useState(false);
@@ -170,50 +176,57 @@ const MenuDisabilitasPage: React.FC = () => {
     tingkat_disabilitas: ""
   });
   const [formErrors, setFormErrors] = useState<Partial<FormData>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // ========================
+  // API FUNCTIONS
+  // ========================
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params: Record<string, any> = {
+        page: currentPage,
+        per_page: itemsPerPage,
+      };
+
+      if (searchTerm) {
+        params.search = searchTerm;
+      }
+
+      if (selectedFilter !== "all") {
+        params.tingkat = selectedFilter;
+      }
+
+      const response: ApiResponse = await api.get('/', params);
+      
+      if (response.success) {
+        setData(response.data.data || []);
+        setStatistics(response.statistics || { total: 0, ringan: 0, sedang: 0, berat: 0 });
+        setCurrentPage(response.data.current_page || 1);
+        setTotalPages(response.data.last_page || 1);
+        setTotalItems(response.data.total || 0);
+      }
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      // Handle error - show notification or set error state
+    } finally {
+      setLoading(false);
+    }
+  }, [currentPage, itemsPerPage, searchTerm, selectedFilter]);
 
   // ========================
   // EFFECTS
   // ========================
   useEffect(() => {
-    // Load data from persistent storage on component mount
-    const loadData = () => {
-      setLoading(true);
-      try {
-        const savedData = loadFromStorage();
-        setData(savedData);
-        setFilteredData(savedData);
-      } catch (error) {
-        console.error('Error loading data:', error);
-        // Fallback to initial mock data if loading fails
-        setData(INITIAL_MOCK_DATA);
-        setFilteredData(INITIAL_MOCK_DATA);
-      } finally {
-        setLoading(false);
-      }
-    };
+    fetchData();
+  }, [fetchData]);
 
-    loadData();
-  }, []);
-
+  // Reset to first page when search/filter changes
   useEffect(() => {
-    let filtered = data;
-
-    // Filter by search term
-    if (searchTerm) {
-      filtered = filtered.filter(item => 
-        item.kategori_disabilitas.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.tingkat_disabilitas.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+    if (currentPage !== 1) {
+      setCurrentPage(1);
     }
-
-    // Filter by tingkat
-    if (selectedFilter !== "all") {
-      filtered = filtered.filter(item => item.tingkat_disabilitas === selectedFilter);
-    }
-
-    setFilteredData(filtered);
-    setCurrentPage(1); // Reset to first page when filtering
-  }, [data, searchTerm, selectedFilter]);
+  }, [searchTerm, selectedFilter]);
 
   // ========================
   // UTILITY FUNCTIONS
@@ -226,10 +239,6 @@ const MenuDisabilitasPage: React.FC = () => {
       hour: '2-digit',
       minute: '2-digit'
     });
-  };
-
-  const generateId = () => {
-    return Date.now().toString();
   };
 
   const resetForm = () => {
@@ -255,20 +264,12 @@ const MenuDisabilitasPage: React.FC = () => {
     return Object.keys(errors).length === 0;
   };
 
-  // Calculate statistics
-  const totalData = data.length;
-  const ringanCount = data.filter(item => item.tingkat_disabilitas === "Ringan").length;
-  const sedangCount = data.filter(item => item.tingkat_disabilitas === "Sedang").length;
-  const beratCount = data.filter(item => item.tingkat_disabilitas === "Berat").length;
-
   // Pagination calculations
-  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const currentPageData = filteredData.slice(startIndex, endIndex);
+  const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
 
   const goToPage = (page: number) => {
-    if (page >= 1 && page <= totalPages) {
+    if (page >= 1 && page <= totalPages && page !== currentPage) {
       setCurrentPage(page);
     }
   };
@@ -302,47 +303,63 @@ const MenuDisabilitasPage: React.FC = () => {
   // ========================
   // EVENT HANDLERS
   // ========================
-  const handleAddSubmit = (e: React.FormEvent) => {
+  const handleAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateForm()) return;
+    if (!validateForm() || isSubmitting) return;
 
-    const newItem: DisabilitasItem = {
-      id: generateId(),
-      ...formData,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-
-    const updatedData = [...data, newItem];
-    setData(updatedData);
-    
-    // Save to persistent storage
-    saveToStorage(updatedData);
-    
-    setShowAddModal(false);
-    resetForm();
+    setIsSubmitting(true);
+    try {
+      const response: ApiResponse = await api.post('/create-disability', formData);
+      
+      if (response.success) {
+        setShowAddModal(false);
+        resetForm();
+        fetchData(); // Refresh data
+        // Show success notification
+        console.log(response.message);
+      }
+    } catch (error: any) {
+      if (error.errors) {
+        // Handle validation errors from server
+        setFormErrors(error.errors);
+      } else {
+        // Handle other errors
+        console.error('Error creating disabilitas:', error.message);
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleEditSubmit = (e: React.FormEvent) => {
+  const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateForm() || !selectedItem) return;
+    if (!validateForm() || !selectedItem || isSubmitting) return;
 
-    const updatedData = data.map(item => 
-      item.id === selectedItem.id 
-        ? { ...item, ...formData, updatedAt: new Date().toISOString() }
-        : item
-    );
-    
-    setData(updatedData);
-    
-    // Save to persistent storage
-    saveToStorage(updatedData);
-
-    setShowEditModal(false);
-    setSelectedItem(null);
-    resetForm();
+    setIsSubmitting(true);
+    try {
+      const response: ApiResponse = await api.put(`/update-disability/${selectedItem.id}`, formData);
+      
+      if (response.success) {
+        setShowEditModal(false);
+        setSelectedItem(null);
+        resetForm();
+        fetchData(); // Refresh data
+        // Show success notification
+        console.log(response.message);
+      }
+    } catch (error: any) {
+      if (error.errors) {
+        // Handle validation errors from server
+        setFormErrors(error.errors);
+      } else {
+        // Handle other errors
+        console.error('Error updating disabilitas:', error.message);
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleEdit = (item: DisabilitasItem) => {
@@ -359,44 +376,67 @@ const MenuDisabilitasPage: React.FC = () => {
     setShowDeleteModal(true);
   };
 
-  const confirmDelete = () => {
-    if (selectedItem) {
-      const updatedData = data.filter(item => item.id !== selectedItem.id);
-      setData(updatedData);
+  const confirmDelete = async () => {
+    if (!selectedItem || isSubmitting) return;
+
+    setIsSubmitting(true);
+    try {
+      const response: ApiResponse = await api.delete(`/delete-disability/${selectedItem.id}`);
       
-      // Save to persistent storage
-      saveToStorage(updatedData);
-      
-      setShowDeleteModal(false);
-      setSelectedItem(null);
+      if (response.success) {
+        setShowDeleteModal(false);
+        setSelectedItem(null);
+        fetchData(); // Refresh data
+        // Show success notification
+        console.log(response.message);
+      }
+    } catch (error: any) {
+      console.error('Error deleting disabilitas:', error.message);
+      // Handle error - show error notification
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const handleExport = () => {
-    // Create CSV content
-    const headers = ['No', 'Kategori Disabilitas', 'Tingkat Disabilitas', 'Dibuat Tanggal', 'Diupdate Tanggal'];
-    const csvContent = [
-      headers.join(','),
-      ...filteredData.map((item, index) => [
-        index + 1,
-        `"${item.kategori_disabilitas}"`,
-        `"${item.tingkat_disabilitas}"`,
-        `"${formatDate(item.createdAt)}"`,
-        `"${formatDate(item.updatedAt)}"`
-      ].join(','))
-    ].join('\n');
+  const handleExport = async () => {
+    try {
+      // Get all data for export (without pagination)
+      const response: ApiResponse = await api.get('/', {
+        per_page: 1000, // Get all data
+        search: searchTerm,
+        tingkat: selectedFilter !== 'all' ? selectedFilter : undefined
+      });
 
-    // Create and download file
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `data-disabilitas-${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+      if (response.success && response.data.data) {
+        // Create CSV content
+        const headers = ['No', 'Kategori Disabilitas', 'Tingkat Disabilitas', 'Dibuat Tanggal', 'Diupdate Tanggal'];
+        const csvContent = [
+          headers.join(','),
+          ...response.data.data.map((item: DisabilitasItem, index: number) => [
+            index + 1,
+            `"${item.kategori_disabilitas}"`,
+            `"${item.tingkat_disabilitas}"`,
+            `"${formatDate(item.created_at)}"`,
+            `"${formatDate(item.updated_at)}"`
+          ].join(','))
+        ].join('\n');
+
+        // Create and download file
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', `data-disabilitas-${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }
+    } catch (error) {
+      console.error('Error exporting data:', error);
+      // Handle error - show error notification
+    }
   };
 
   // ========================
@@ -427,7 +467,8 @@ const MenuDisabilitasPage: React.FC = () => {
           <div className="flex items-center gap-3">
             <button
               onClick={handleExport}
-              className="inline-flex items-center px-4 py-2.5 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg text-sm font-medium transition-all duration-200"
+              disabled={loading}
+              className="inline-flex items-center px-4 py-2.5 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg text-sm font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Download size={16} className="mr-2" />
               Export
@@ -448,7 +489,7 @@ const MenuDisabilitasPage: React.FC = () => {
             <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
             <input
               type="text"
-              placeholder="Cari kategori"
+              placeholder="Cari kategori disabilitas..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 transition-all duration-200"
@@ -461,7 +502,7 @@ const MenuDisabilitasPage: React.FC = () => {
               onChange={(e) => setSelectedFilter(e.target.value)}
               className="w-full pl-10 pr-8 py-3 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white appearance-none transition-all duration-200"
             >
-              <option value="all">Semua Status</option>
+              <option value="all">Semua Tingkat</option>
               {TINGKAT_OPTIONS.map(tingkat => (
                 <option key={tingkat} value={tingkat}>{tingkat}</option>
               ))}
@@ -481,7 +522,7 @@ const MenuDisabilitasPage: React.FC = () => {
                   Total Disabilitas
                 </p>
                 <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">
-                  {totalData}
+                  {statistics.total}
                 </p>
               </div>
             </div>
@@ -497,7 +538,7 @@ const MenuDisabilitasPage: React.FC = () => {
                   Tingkat Ringan
                 </p>
                 <p className="text-2xl font-bold text-green-900 dark:text-green-100">
-                  {ringanCount}
+                  {statistics.ringan}
                 </p>
               </div>
             </div>
@@ -513,7 +554,7 @@ const MenuDisabilitasPage: React.FC = () => {
                   Tingkat Sedang
                 </p>
                 <p className="text-2xl font-bold text-yellow-900 dark:text-yellow-100">
-                  {sedangCount}
+                  {statistics.sedang}
                 </p>
               </div>
             </div>
@@ -529,7 +570,7 @@ const MenuDisabilitasPage: React.FC = () => {
                   Tingkat Berat
                 </p>
                 <p className="text-2xl font-bold text-red-900 dark:text-red-100">
-                  {beratCount}
+                  {statistics.berat}
                 </p>
               </div>
             </div>
@@ -572,7 +613,7 @@ const MenuDisabilitasPage: React.FC = () => {
                   </div>
                 </td>
               </tr>
-            ) : filteredData.length === 0 ? (
+            ) : data.length === 0 ? (
               <tr>
                 <td colSpan={5} className="px-6 py-12 text-center">
                   <div className="flex flex-col items-center">
@@ -584,7 +625,7 @@ const MenuDisabilitasPage: React.FC = () => {
                 </td>
               </tr>
             ) : (
-              currentPageData.map((item, index) => (
+              data.map((item, index) => (
                 <tr
                   key={item.id}
                   className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors duration-150"
@@ -609,7 +650,7 @@ const MenuDisabilitasPage: React.FC = () => {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                    {formatDate(item.updatedAt)}
+                    {formatDate(item.updated_at)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-center">
                     <div className="flex justify-center space-x-2">
@@ -637,13 +678,13 @@ const MenuDisabilitasPage: React.FC = () => {
       </div>
 
       {/* Pagination */}
-      {filteredData.length > itemsPerPage && (
+      {totalItems > itemsPerPage && (
         <div className="bg-white dark:bg-gray-800 px-6 py-4 border-t border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div className="text-sm text-gray-700 dark:text-gray-300">
               Menampilkan <span className="font-medium">{startIndex + 1}</span> sampai{" "}
-              <span className="font-medium">{Math.min(endIndex, filteredData.length)}</span> dari{" "}
-              <span className="font-medium">{filteredData.length}</span> hasil
+              <span className="font-medium">{endIndex}</span> dari{" "}
+              <span className="font-medium">{totalItems}</span> hasil
             </div>
             <div className="flex items-center space-x-2">
               <button
@@ -719,10 +760,13 @@ const MenuDisabilitasPage: React.FC = () => {
                     formErrors.kategori_disabilitas ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
                   }`}
                   placeholder="Masukkan kategori disabilitas"
+                  disabled={isSubmitting}
                 />
                 {formErrors.kategori_disabilitas && (
                   <p className="mt-1 text-sm text-red-600 dark:text-red-400">
-                    {formErrors.kategori_disabilitas}
+                    {Array.isArray(formErrors.kategori_disabilitas) 
+                      ? formErrors.kategori_disabilitas[0] 
+                      : formErrors.kategori_disabilitas}
                   </p>
                 )}
               </div>
@@ -736,6 +780,7 @@ const MenuDisabilitasPage: React.FC = () => {
                   className={`w-full px-3 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-all duration-150 ${
                     formErrors.tingkat_disabilitas ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
                   }`}
+                  disabled={isSubmitting}
                 >
                   <option value="">Pilih tingkat disabilitas</option>
                   {TINGKAT_OPTIONS.map(tingkat => (
@@ -744,7 +789,9 @@ const MenuDisabilitasPage: React.FC = () => {
                 </select>
                 {formErrors.tingkat_disabilitas && (
                   <p className="mt-1 text-sm text-red-600 dark:text-red-400">
-                    {formErrors.tingkat_disabilitas}
+                    {Array.isArray(formErrors.tingkat_disabilitas) 
+                      ? formErrors.tingkat_disabilitas[0] 
+                      : formErrors.tingkat_disabilitas}
                   </p>
                 )}
               </div>
@@ -755,15 +802,18 @@ const MenuDisabilitasPage: React.FC = () => {
                     setShowAddModal(false);
                     resetForm();
                   }}
-                  className="px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-150"
+                  disabled={isSubmitting}
+                  className="px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-all duration-150 shadow-sm"
+                  disabled={isSubmitting}
+                  className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-all duration-150 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
                 >
-                  Simpan
+                  {isSubmitting && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>}
+                  {isSubmitting ? 'Menyimpan...' : 'Simpan'}
                 </button>
               </div>
             </form>
@@ -794,10 +844,13 @@ const MenuDisabilitasPage: React.FC = () => {
                     formErrors.kategori_disabilitas ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
                   }`}
                   placeholder="Masukkan kategori disabilitas"
+                  disabled={isSubmitting}
                 />
                 {formErrors.kategori_disabilitas && (
                   <p className="mt-1 text-sm text-red-600 dark:text-red-400">
-                    {formErrors.kategori_disabilitas}
+                    {Array.isArray(formErrors.kategori_disabilitas) 
+                      ? formErrors.kategori_disabilitas[0] 
+                      : formErrors.kategori_disabilitas}
                   </p>
                 )}
               </div>
@@ -811,6 +864,7 @@ const MenuDisabilitasPage: React.FC = () => {
                   className={`w-full px-3 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-all duration-150 ${
                     formErrors.tingkat_disabilitas ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
                   }`}
+                  disabled={isSubmitting}
                 >
                   <option value="">Pilih tingkat disabilitas</option>
                   {TINGKAT_OPTIONS.map(tingkat => (
@@ -819,7 +873,9 @@ const MenuDisabilitasPage: React.FC = () => {
                 </select>
                 {formErrors.tingkat_disabilitas && (
                   <p className="mt-1 text-sm text-red-600 dark:text-red-400">
-                    {formErrors.tingkat_disabilitas}
+                    {Array.isArray(formErrors.tingkat_disabilitas) 
+                      ? formErrors.tingkat_disabilitas[0] 
+                      : formErrors.tingkat_disabilitas}
                   </p>
                 )}
               </div>
@@ -831,15 +887,18 @@ const MenuDisabilitasPage: React.FC = () => {
                     setSelectedItem(null);
                     resetForm();
                   }}
-                  className="px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-150"
+                  disabled={isSubmitting}
+                  className="px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-all duration-150 shadow-sm"
+                  disabled={isSubmitting}
+                  className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-all duration-150 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
                 >
-                  Update
+                  {isSubmitting && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>}
+                  {isSubmitting ? 'Memperbarui...' : 'Update'}
                 </button>
               </div>
             </form>
@@ -871,15 +930,18 @@ const MenuDisabilitasPage: React.FC = () => {
                   setShowDeleteModal(false);
                   setSelectedItem(null);
                 }}
-                className="px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-150"
+                disabled={isSubmitting}
+                className="px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Batal
               </button>
               <button
                 onClick={confirmDelete}
-                className="px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition-all duration-150 shadow-sm"
+                disabled={isSubmitting}
+                className="px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition-all duration-150 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
               >
-                Hapus
+                {isSubmitting && <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>}
+                {isSubmitting ? 'Menghapus...' : 'Hapus'}
               </button>
             </div>
           </div>

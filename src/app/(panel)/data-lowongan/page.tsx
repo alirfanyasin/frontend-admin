@@ -874,18 +874,6 @@ export default function DataLowonganPage() {
                           {formatDate(job.application_deadline)}
                         </time>
                       </div>
-
-                      {/* Actions */}
-                      <footer className="pt-4 border-t border-gray-100 dark:border-gray-700">
-                        <Link
-                          href={`/lowongan-pekerjaan/${job.id}/detail`}
-                          className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-center text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex items-center justify-center"
-                          aria-label={`Lihat detail lengkap lowongan ${job.job_title} di ${job.perusahaan_profile.nama_perusahaan}`}
-                        >
-                          <Eye className="w-4 h-4 mr-2" />
-                          {isExpired ? "Lihat Detail" : "Lihat"}
-                        </Link>
-                      </footer>
                     </article>
                   );
                 })}

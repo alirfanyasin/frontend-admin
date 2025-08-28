@@ -27,17 +27,19 @@ import {
   Building2,
   ChevronDown,
   User,
+  WifiOff,
+  ServerCrash,
 } from "lucide-react";
 import apiBissaKerja from "@/lib/api-bissa-kerja";
 
-// Menggunakan interface yang sama dari kode referensi
+// Interface untuk response API
 interface JobApplication {
   id: number;
   lowongan_id: number;
   user_id: number;
   status: "pending" | "reviewed" | "accepted" | "rejected" | "interview";
   feedback: string | null;
-  applied_at: string;
+  applied_at: string | null;
   reviewed_at: string | null;
   accepted_at: string | null;
   rejected_at: string | null;
@@ -56,8 +58,8 @@ interface JobApplication {
       disabilitas: {
         kategori_disabilitas: string;
         tingkat_disabilitas: string;
-      };
-    };
+      } | null;
+    } | null;
   };
   lowongan: {
     id: number;
@@ -65,26 +67,230 @@ interface JobApplication {
     location: string;
     job_type: string;
     perusahaan_profile_id: number;
-    perusahaan?: {
+    perusahaan: {
       id: number;
       nama_perusahaan: string;
       logo?: string;
-    };
+    } | null;
   };
 }
 
-interface ApiResponse {
-  success: boolean;
-  data: JobApplication[];
-  meta?: {
-    total: number;
-    per_page: number;
-    current_page: number;
-    last_page: number;
-  };
+// Error types untuk better handling
+interface APIError {
+  type: 'NETWORK' | 'SERVER' | 'AUTH' | 'TIMEOUT' | 'UNKNOWN';
+  message: string;
+  statusCode?: number;
 }
+
+// Mock data untuk fallback
+const mockApplications: JobApplication[] = [
+  {
+    id: 1,
+    lowongan_id: 1,
+    user_id: 1,
+    status: "pending",
+    feedback: null,
+    applied_at: "2025-01-15T10:00:00Z",
+    reviewed_at: null,
+    accepted_at: null,
+    rejected_at: null,
+    created_at: "2025-01-15T10:00:00Z",
+    updated_at: "2025-01-15T10:00:00Z",
+    user: {
+      id: 1,
+      name: "Ahmad Rizki",
+      email: "ahmad.rizki@email.com",
+      avatar: "",
+      user_profile: {
+        nik: "3201234567890123",
+        tanggal_lahir: "1995-05-15",
+        jenis_kelamin: "L",
+        no_telp: "08123456789",
+        disabilitas: {
+          kategori_disabilitas: "Fisik",
+          tingkat_disabilitas: "Ringan"
+        }
+      }
+    },
+    lowongan: {
+      id: 1,
+      job_title: "Software Developer",
+      location: "Jakarta",
+      job_type: "full_time",
+      perusahaan_profile_id: 1,
+      perusahaan: {
+        id: 1,
+        nama_perusahaan: "Tech Innovate"
+      }
+    }
+  },
+  {
+    id: 2,
+    lowongan_id: 2,
+    user_id: 2,
+    status: "reviewed",
+    feedback: null,
+    applied_at: "2025-01-14T09:30:00Z",
+    reviewed_at: "2025-01-16T14:20:00Z",
+    accepted_at: null,
+    rejected_at: null,
+    created_at: "2025-01-14T09:30:00Z",
+    updated_at: "2025-01-16T14:20:00Z",
+    user: {
+      id: 2,
+      name: "Siti Nurhaliza",
+      email: "siti.nurhaliza@email.com",
+      avatar: "",
+      user_profile: {
+        nik: "3301234567890124",
+        tanggal_lahir: "1992-08-20",
+        jenis_kelamin: "P",
+        no_telp: "08234567890",
+        disabilitas: {
+          kategori_disabilitas: "Mental",
+          tingkat_disabilitas: "Sedang"
+        }
+      }
+    },
+    lowongan: {
+      id: 2,
+      job_title: "UI/UX Designer",
+      location: "Bandung",
+      job_type: "full_time",
+      perusahaan_profile_id: 2,
+      perusahaan: {
+        id: 2,
+        nama_perusahaan: "Creative Studio"
+      }
+    }
+  },
+  {
+    id: 3,
+    lowongan_id: 3,
+    user_id: 3,
+    status: "interview",
+    feedback: null,
+    applied_at: "2025-01-12T11:15:00Z",
+    reviewed_at: "2025-01-14T16:45:00Z",
+    accepted_at: null,
+    rejected_at: null,
+    created_at: "2025-01-12T11:15:00Z",
+    updated_at: "2025-01-15T10:30:00Z",
+    user: {
+      id: 3,
+      name: "Budi Santoso",
+      email: "budi.santoso@email.com",
+      avatar: "",
+      user_profile: {
+        nik: "3401234567890125",
+        tanggal_lahir: "1988-12-10",
+        jenis_kelamin: "L",
+        no_telp: "08345678901",
+        disabilitas: {
+          kategori_disabilitas: "Sensorik",
+          tingkat_disabilitas: "Berat"
+        }
+      }
+    },
+    lowongan: {
+      id: 3,
+      job_title: "Data Analyst",
+      location: "Surabaya",
+      job_type: "part_time",
+      perusahaan_profile_id: 1,
+      perusahaan: {
+        id: 1,
+        nama_perusahaan: "Tech Innovate"
+      }
+    }
+  },
+  {
+    id: 4,
+    lowongan_id: 4,
+    user_id: 4,
+    status: "accepted",
+    feedback: null,
+    applied_at: "2025-01-10T08:00:00Z",
+    reviewed_at: "2025-01-11T09:00:00Z",
+    accepted_at: "2025-01-13T15:30:00Z",
+    rejected_at: null,
+    created_at: "2025-01-10T08:00:00Z",
+    updated_at: "2025-01-13T15:30:00Z",
+    user: {
+      id: 4,
+      name: "Maya Sari",
+      email: "maya.sari@email.com",
+      avatar: "",
+      user_profile: {
+        nik: "3501234567890126",
+        tanggal_lahir: "1990-03-25",
+        jenis_kelamin: "P",
+        no_telp: "08456789012",
+        disabilitas: {
+          kategori_disabilitas: "Fisik",
+          tingkat_disabilitas: "Ringan"
+        }
+      }
+    },
+    lowongan: {
+      id: 4,
+      job_title: "Marketing Specialist",
+      location: "Yogyakarta",
+      job_type: "full_time",
+      perusahaan_profile_id: 3,
+      perusahaan: {
+        id: 3,
+        nama_perusahaan: "Digital Agency"
+      }
+    }
+  },
+  {
+    id: 5,
+    lowongan_id: 5,
+    user_id: 5,
+    status: "rejected",
+    feedback: "Pengalaman kurang sesuai dengan requirement yang dibutuhkan untuk posisi ini. Silakan melamar kembali setelah mendapat pengalaman yang relevan.",
+    applied_at: "2025-01-08T13:20:00Z",
+    reviewed_at: "2025-01-09T10:15:00Z",
+    accepted_at: null,
+    rejected_at: "2025-01-09T10:15:00Z",
+    created_at: "2025-01-08T13:20:00Z",
+    updated_at: "2025-01-09T10:15:00Z",
+    user: {
+      id: 5,
+      name: "Doni Prasetyo",
+      email: "doni.prasetyo@email.com",
+      avatar: "",
+      user_profile: {
+        nik: "3601234567890127",
+        tanggal_lahir: "1993-07-18",
+        jenis_kelamin: "L",
+        no_telp: "08567890123",
+        disabilitas: {
+          kategori_disabilitas: "Mental",
+          tingkat_disabilitas: "Ringan"
+        }
+      }
+    },
+    lowongan: {
+      id: 5,
+      job_title: "Project Manager",
+      location: "Medan",
+      job_type: "contract",
+      perusahaan_profile_id: 2,
+      perusahaan: {
+        id: 2,
+        nama_perusahaan: "Creative Studio"
+      }
+    }
+  }
+];
 
 export default function AllApplicantsPage() {
+  // Development mode flag - set to false to disable API calls entirely
+  const DEVELOPMENT_MODE = true;
+  const USE_MOCK_DATA_ONLY = true; // Set to true to skip API calls completely
+  
   const [applications, setApplications] = useState<JobApplication[]>([]);
   const [filteredApplications, setFilteredApplications] = useState<JobApplication[]>([]);
   const [stats, setStats] = useState({
@@ -95,8 +301,10 @@ export default function AllApplicantsPage() {
     rejected: 0,
     interview: 0,
   });
+  const [companies, setCompanies] = useState<Array<{id: number; nama_perusahaan: string}>>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<APIError | null>(null);
+  const [usingMockData, setUsingMockData] = useState<boolean>(false);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [companyFilter, setCompanyFilter] = useState<string>("all");
@@ -104,254 +312,16 @@ export default function AllApplicantsPage() {
   const [selectedApplicant, setSelectedApplicant] = useState<JobApplication | null>(null);
   const [showApplicantModal, setShowApplicantModal] = useState<boolean>(false);
 
-  // Fetch all applicants data - sementara menggunakan mock data
   useEffect(() => {
-    const fetchAllApplicants = async (): Promise<void> => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        // TODO: Ganti dengan API endpoint yang benar
-        // const response = await apiBissaKerja.get<ApiResponse>('/admin/all-applicants');
-
-        // MOCK DATA untuk testing - hapus setelah API tersedia
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API delay
-
-        const mockApplications: JobApplication[] = [
-          {
-            id: 1,
-            lowongan_id: 1,
-            user_id: 1,
-            status: "pending",
-            feedback: null,
-            applied_at: "2024-01-15T10:00:00Z",
-            reviewed_at: null,
-            accepted_at: null,
-            rejected_at: null,
-            created_at: "2024-01-15T10:00:00Z",
-            updated_at: "2024-01-15T10:00:00Z",
-            user: {
-              id: 1,
-              name: "Ahmad Rizki",
-              email: "ahmad.rizki@email.com",
-              avatar: "",
-              user_profile: {
-                nik: "3201234567890123",
-                tanggal_lahir: "1995-05-15",
-                jenis_kelamin: "L",
-                no_telp: "08123456789",
-                disabilitas: {
-                  kategori_disabilitas: "Fisik",
-                  tingkat_disabilitas: "Ringan"
-                }
-              }
-            },
-            lowongan: {
-              id: 1,
-              job_title: "Software Developer",
-              location: "Jakarta",
-              job_type: "full_time",
-              perusahaan_profile_id: 1,
-              perusahaan: {
-                id: 1,
-                nama_perusahaan: "Tech Innovate"
-              }
-            }
-          },
-          {
-            id: 2,
-            lowongan_id: 2,
-            user_id: 2,
-            status: "reviewed",
-            feedback: null,
-            applied_at: "2024-01-14T09:30:00Z",
-            reviewed_at: "2024-01-16T14:20:00Z",
-            accepted_at: null,
-            rejected_at: null,
-            created_at: "2024-01-14T09:30:00Z",
-            updated_at: "2024-01-16T14:20:00Z",
-            user: {
-              id: 2,
-              name: "Siti Nurhaliza",
-              email: "siti.nurhaliza@email.com",
-              avatar: "",
-              user_profile: {
-                nik: "3301234567890124",
-                tanggal_lahir: "1992-08-20",
-                jenis_kelamin: "P",
-                no_telp: "08234567890",
-                disabilitas: {
-                  kategori_disabilitas: "Mental",
-                  tingkat_disabilitas: "Sedang"
-                }
-              }
-            },
-            lowongan: {
-              id: 2,
-              job_title: "UI/UX Designer",
-              location: "Bandung",
-              job_type: "full_time",
-              perusahaan_profile_id: 2,
-              perusahaan: {
-                id: 2,
-                nama_perusahaan: "Creative Studio"
-              }
-            }
-          },
-          {
-            id: 3,
-            lowongan_id: 3,
-            user_id: 3,
-            status: "interview",
-            feedback: null,
-            applied_at: "2024-01-12T11:15:00Z",
-            reviewed_at: "2024-01-14T16:45:00Z",
-            accepted_at: null,
-            rejected_at: null,
-            created_at: "2024-01-12T11:15:00Z",
-            updated_at: "2024-01-15T10:30:00Z",
-            user: {
-              id: 3,
-              name: "Budi Santoso",
-              email: "budi.santoso@email.com",
-              avatar: "",
-              user_profile: {
-                nik: "3401234567890125",
-                tanggal_lahir: "1988-12-10",
-                jenis_kelamin: "L",
-                no_telp: "08345678901",
-                disabilitas: {
-                  kategori_disabilitas: "Sensorik",
-                  tingkat_disabilitas: "Berat"
-                }
-              }
-            },
-            lowongan: {
-              id: 3,
-              job_title: "Data Analyst",
-              location: "Surabaya",
-              job_type: "part_time",
-              perusahaan_profile_id: 1,
-              perusahaan: {
-                id: 1,
-                nama_perusahaan: "Tech Innovate"
-              }
-            }
-          },
-          {
-            id: 4,
-            lowongan_id: 4,
-            user_id: 4,
-            status: "accepted",
-            feedback: null,
-            applied_at: "2024-01-10T08:00:00Z",
-            reviewed_at: "2024-01-11T09:00:00Z",
-            accepted_at: "2024-01-13T15:30:00Z",
-            rejected_at: null,
-            created_at: "2024-01-10T08:00:00Z",
-            updated_at: "2024-01-13T15:30:00Z",
-            user: {
-              id: 4,
-              name: "Maya Sari",
-              email: "maya.sari@email.com",
-              avatar: "",
-              user_profile: {
-                nik: "3501234567890126",
-                tanggal_lahir: "1990-03-25",
-                jenis_kelamin: "P",
-                no_telp: "08456789012",
-                disabilitas: {
-                  kategori_disabilitas: "Fisik",
-                  tingkat_disabilitas: "Ringan"
-                }
-              }
-            },
-            lowongan: {
-              id: 4,
-              job_title: "Marketing Specialist",
-              location: "Yogyakarta",
-              job_type: "full_time",
-              perusahaan_profile_id: 3,
-              perusahaan: {
-                id: 3,
-                nama_perusahaan: "Digital Agency"
-              }
-            }
-          },
-          {
-            id: 5,
-            lowongan_id: 5,
-            user_id: 5,
-            status: "rejected",
-            feedback: "Pengalaman kurang sesuai dengan requirement yang dibutuhkan untuk posisi ini. Silakan melamar kembali setelah mendapat pengalaman yang relevan.",
-            applied_at: "2024-01-08T13:20:00Z",
-            reviewed_at: "2024-01-09T10:15:00Z",
-            accepted_at: null,
-            rejected_at: "2024-01-09T10:15:00Z",
-            created_at: "2024-01-08T13:20:00Z",
-            updated_at: "2024-01-09T10:15:00Z",
-            user: {
-              id: 5,
-              name: "Doni Prasetyo",
-              email: "doni.prasetyo@email.com",
-              avatar: "",
-              user_profile: {
-                nik: "3601234567890127",
-                tanggal_lahir: "1993-07-18",
-                jenis_kelamin: "L",
-                no_telp: "08567890123",
-                disabilitas: {
-                  kategori_disabilitas: "Mental",
-                  tingkat_disabilitas: "Ringan"
-                }
-              }
-            },
-            lowongan: {
-              id: 5,
-              job_title: "Project Manager",
-              location: "Medan",
-              job_type: "contract",
-              perusahaan_profile_id: 2,
-              perusahaan: {
-                id: 2,
-                nama_perusahaan: "Creative Studio"
-              }
-            }
-          }
-        ];
-
-        // Simulate successful response
-        const applicationsData = mockApplications;
-        setApplications(applicationsData);
-        setFilteredApplications(applicationsData);
-
-        // Calculate stats
-        const statsCalc = {
-          total: applicationsData.length,
-          pending: applicationsData.filter((app) => app.status === "pending").length,
-          reviewed: applicationsData.filter((app) => app.status === "reviewed").length,
-          accepted: applicationsData.filter((app) => app.status === "accepted").length,
-          rejected: applicationsData.filter((app) => app.status === "rejected").length,
-          interview: applicationsData.filter((app) => app.status === "interview").length,
-        };
-        setStats(statsCalc);
-
-      } catch (err) {
-        console.error("Error fetching all applicants:", err);
-        setError("Terjadi kesalahan saat mengambil data");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchAllApplicants();
+    fetchAllData();
   }, []);
 
-  // Filter and sort applications
+  // Client-side filtering dan sorting
   useEffect(() => {
     let filtered = applications;
 
-    if (searchTerm) {
+    // Search filter
+    if (searchTerm.trim()) {
       filtered = filtered.filter(
         (app) =>
           app.user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -361,16 +331,19 @@ export default function AllApplicantsPage() {
       );
     }
 
+    // Status filter
     if (statusFilter !== "all") {
       filtered = filtered.filter((app) => app.status === statusFilter);
     }
 
+    // Company filter
     if (companyFilter !== "all") {
       filtered = filtered.filter((app) => 
         app.lowongan.perusahaan_profile_id.toString() === companyFilter
       );
     }
 
+    // Sort
     filtered = [...filtered].sort((a, b) => {
       switch (sortBy) {
         case "newest":
@@ -391,13 +364,261 @@ export default function AllApplicantsPage() {
     setFilteredApplications(filtered);
   }, [applications, searchTerm, statusFilter, companyFilter, sortBy]);
 
-  const formatDate = (dateString: string): string => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("id-ID", {
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-    });
+  // Enhanced error categorization
+  const categorizeError = (error: any): APIError => {
+    if (axios.isAxiosError(error)) {
+      if (!error.response) {
+        // Network error
+        if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
+          return {
+            type: 'TIMEOUT',
+            message: 'Koneksi timeout. Server membutuhkan waktu terlalu lama untuk merespons.'
+          };
+        }
+        return {
+          type: 'NETWORK',
+          message: 'Tidak dapat terhubung ke server. Periksa koneksi internet Anda.'
+        };
+      }
+      
+      const status = error.response.status;
+      switch (status) {
+        case 401:
+          return {
+            type: 'AUTH',
+            message: 'Sesi Anda telah berakhir. Silakan login kembali.',
+            statusCode: status
+          };
+        case 403:
+          return {
+            type: 'AUTH',
+            message: 'Anda tidak memiliki izin untuk mengakses data ini.',
+            statusCode: status
+          };
+        case 404:
+          return {
+            type: 'SERVER',
+            message: 'Endpoint tidak ditemukan. API mungkin belum tersedia.',
+            statusCode: status
+          };
+        case 500:
+          return {
+            type: 'SERVER',
+            message: 'Terjadi kesalahan pada server. Tim teknis sedang memperbaiki masalah ini.',
+            statusCode: status
+          };
+        case 502:
+        case 503:
+        case 504:
+          return {
+            type: 'SERVER',
+            message: 'Server sedang dalam maintenance atau overload. Coba lagi dalam beberapa saat.',
+            statusCode: status
+          };
+        default:
+          return {
+            type: 'SERVER',
+            message: `Server mengembalikan error ${status}. Silakan hubungi administrator.`,
+            statusCode: status
+          };
+      }
+    }
+    
+    return {
+      type: 'UNKNOWN',
+      message: error.message || 'Terjadi kesalahan yang tidak diketahui.'
+    };
+  };
+
+  const fetchAllData = async (): Promise<void> => {
+    try {
+      setLoading(true);
+      setError(null);
+      setUsingMockData(false);
+
+      // If we're in development mode and want to use mock data only, skip API calls
+      if (DEVELOPMENT_MODE && USE_MOCK_DATA_ONLY) {
+        console.log("🧪 Development mode: Using mock data only");
+        setUsingMockData(true);
+        setApplications(mockApplications);
+        setFilteredApplications(mockApplications);
+        calculateStatsFromData(mockApplications);
+        extractCompaniesFromData(mockApplications);
+        return;
+      }
+
+      // Try to fetch real data with retry mechanism
+      await fetchWithRetry();
+
+    } catch (err) {
+      if (!USE_MOCK_DATA_ONLY) {
+        const categorizedError = categorizeError(err);
+        console.warn("API calls failed, using mock data:", categorizedError);
+        
+        // Set error for display
+        setError(categorizedError);
+      }
+      
+      // Fallback to mock data
+      setUsingMockData(true);
+      setApplications(mockApplications);
+      setFilteredApplications(mockApplications);
+      calculateStatsFromData(mockApplications);
+      extractCompaniesFromData(mockApplications);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchWithRetry = async (retries = 2): Promise<void> => {
+    for (let i = 0; i <= retries; i++) {
+      try {
+        // Batch all API calls with individual error handling
+        const results = await Promise.allSettled([
+          fetchApplications(),
+          fetchStats(),
+          fetchCompanies()
+        ]);
+
+        // Check if at least the main applications call succeeded
+        const applicationsResult = results[0];
+        if (applicationsResult.status === 'rejected') {
+          throw applicationsResult.reason;
+        }
+
+        // Success - break out of retry loop
+        break;
+      } catch (error) {
+        if (i === retries) {
+          // Last retry failed
+          throw error;
+        }
+        
+        // Wait before retrying (exponential backoff)
+        await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000));
+      }
+    }
+  };
+
+  const fetchApplications = async (): Promise<void> => {
+    try {
+      // Add a check to see if we should even attempt the API call
+      // You can add a flag or environment variable to control this
+      const shouldUseAPI = false; // Set to true when backend is ready
+      
+      if (!shouldUseAPI) {
+        throw new Error("API temporarily disabled - using mock data");
+      }
+
+      const response = await apiBissaKerja.get('/admin/all-applicants', {
+        timeout: 10000, // Increased timeout to 10 seconds
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      });
+
+      if (response.data && response.data.success) {
+        const applicationsData = Array.isArray(response.data.data) ? response.data.data : [];
+        setApplications(applicationsData);
+        setFilteredApplications(applicationsData);
+        
+        // Calculate stats from the fetched data if stats API fails
+        calculateStatsFromData(applicationsData);
+      } else {
+        throw new Error(response.data?.message || "Invalid response format from server");
+      }
+    } catch (error) {
+      // Suppress console.error to avoid cluttering the console during development
+      // console.error("Failed to fetch applications:", error);
+      throw error;
+    }
+  };
+
+  const fetchStats = async (): Promise<void> => {
+    try {
+      // Skip API call for now - using calculated stats instead
+      return;
+      
+      const response = await apiBissaKerja.get('/admin/applicants/stats', {
+        timeout: 8000,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      });
+      
+      if (response.data && response.data.success && response.data.data) {
+        setStats(response.data.data);
+      }
+    } catch (error) {
+      // Silently fail - stats will be calculated from applications
+    }
+  };
+
+  const fetchCompanies = async (): Promise<void> => {
+    try {
+      // Skip API call for now - using extracted companies instead
+      return;
+      
+      const response = await apiBissaKerja.get('/admin/companies', {
+        timeout: 8000,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      });
+      
+      if (response.data && response.data.success && Array.isArray(response.data.data)) {
+        setCompanies(response.data.data);
+      }
+    } catch (error) {
+      // Silently fail - companies will be extracted from applications
+    }
+  };
+
+  const calculateStatsFromData = (data: JobApplication[]) => {
+    const statsCalc = {
+      total: data.length,
+      pending: data.filter((app) => app.status === "pending").length,
+      reviewed: data.filter((app) => app.status === "reviewed").length,
+      accepted: data.filter((app) => app.status === "accepted").length,
+      rejected: data.filter((app) => app.status === "rejected").length,
+      interview: data.filter((app) => app.status === "interview").length,
+    };
+    setStats(statsCalc);
+  };
+
+  const extractCompaniesFromData = (data: JobApplication[]) => {
+    const uniqueCompanies = data.reduce((companies, app) => {
+      const company = app.lowongan.perusahaan;
+      if (company && !companies.find(c => c.id === company.id)) {
+        companies.push(company);
+      }
+      return companies;
+    }, [] as Array<{id: number; nama_perusahaan: string}>);
+    setCompanies(uniqueCompanies);
+  };
+
+  const handleRefresh = async () => {
+    await fetchAllData();
+  };
+
+  const formatDate = (dateString: string | null): string => {
+    if (!dateString) return "N/A";
+    
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return "Invalid Date";
+      
+      return date.toLocaleDateString("id-ID", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      });
+    } catch {
+      return "Invalid Date";
+    }
   };
 
   const getStatusConfig = (status: string) => {
@@ -441,20 +662,25 @@ export default function AllApplicantsPage() {
     }
   };
 
-  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>): void => {
-    const target = e.target as HTMLImageElement;
-    // Gunakan avatar generator online atau data URL untuk menghindari 404
-    target.src = "https://ui-avatars.com/api/?name=" + encodeURIComponent(target.alt || "User") + "&background=6366f1&color=fff&size=128";
+  const getErrorIcon = (errorType: string) => {
+    switch (errorType) {
+      case 'NETWORK':
+        return WifiOff;
+      case 'TIMEOUT':
+        return Clock;
+      case 'SERVER':
+        return ServerCrash;
+      case 'AUTH':
+        return AlertCircle;
+      default:
+        return AlertCircle;
+    }
   };
 
-  // Get unique companies for filter
-  const uniqueCompanies = applications.reduce((companies, app) => {
-    const company = app.lowongan.perusahaan;
-    if (company && !companies.find(c => c.id === company.id)) {
-      companies.push(company);
-    }
-    return companies;
-  }, [] as Array<{id: number; nama_perusahaan: string}>);
+  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>): void => {
+    const target = e.target as HTMLImageElement;
+    target.src = "https://ui-avatars.com/api/?name=" + encodeURIComponent(target.alt || "User") + "&background=6366f1&color=fff&size=128";
+  };
 
   // Loading state
   if (loading) {
@@ -481,28 +707,6 @@ export default function AllApplicantsPage() {
     );
   }
 
-  // Error state
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
-        <PageBreadcrumb pageTitle="Data Pelamar" />
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-16">
-          <div className="max-w-md mx-auto p-8 text-center">
-            <AlertCircle className="w-16 h-16 mx-auto mb-6 text-red-500 dark:text-red-400" />
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Terjadi Kesalahan</h2>
-            <p className="text-gray-600 dark:text-gray-400 mb-8">{error}</p>
-            <button
-              onClick={() => window.location.reload()}
-              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white rounded-xl font-medium transition-colors"
-            >
-              Coba Lagi
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
       <PageBreadcrumb pageTitle="Data Pelamar" />
@@ -515,20 +719,61 @@ export default function AllApplicantsPage() {
               <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white mb-2 flex items-center">
                 <Users className="w-7 h-7 mr-3 text-blue-500 dark:text-blue-400" />
                 Data Pelamar
+                {usingMockData && (
+                  <span className="ml-3 px-2 py-1 bg-amber-100 text-amber-800 text-xs font-medium rounded-full">
+                    Demo Data
+                  </span>
+                )}
               </h1>
               <p className="text-gray-600 dark:text-gray-400">
                 Semua data pelamar dari seluruh perusahaan yang terdaftar
+                {USE_MOCK_DATA_ONLY && (
+                  <span className="block text-sm text-blue-600 dark:text-blue-400 mt-1">
+                    Mode development: Menggunakan data demo karena backend sedang dalam pengembangan
+                  </span>
+                )}
               </p>
             </div>
             <button
-              onClick={() => window.location.reload()}
-              className="flex items-center px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-xl transition-colors"
+              onClick={handleRefresh}
+              disabled={loading}
+              className="flex items-center px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <RefreshCw className="w-4 h-4 mr-2" />
+              <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
               Refresh
             </button>
           </div>
         </div>
+
+        {/* Error Message */}
+        {error && (
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-amber-200 dark:border-amber-800 p-6">
+            <div className="flex items-start space-x-4">
+              {React.createElement(getErrorIcon(error.type), {
+                className: "w-8 h-8 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-1"
+              })}
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-amber-800 dark:text-amber-200 mb-2">
+                  {error.type === 'NETWORK' ? 'Masalah Koneksi' :
+                   error.type === 'TIMEOUT' ? 'Timeout' :
+                   error.type === 'SERVER' ? 'Masalah Server' :
+                   error.type === 'AUTH' ? 'Masalah Autentikasi' : 'Kesalahan Sistem'}
+                </h3>
+                <p className="text-amber-700 dark:text-amber-300 mb-3">
+                  {error.message}
+                </p>
+                <p className="text-sm text-amber-600 dark:text-amber-400">
+                  Aplikasi akan menggunakan data demo untuk saat ini. Silakan refresh halaman untuk mencoba lagi.
+                </p>
+                {error.statusCode && (
+                  <p className="text-xs text-amber-500 dark:text-amber-500 mt-2">
+                    Status Code: {error.statusCode}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Stats Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
@@ -556,7 +801,7 @@ export default function AllApplicantsPage() {
                     <Icon className="w-5 h-5" />
                   </div>
                   <span className={`text-2xl font-bold ${colorClasses[stat.color as keyof typeof colorClasses].split(" ")[0]}`}>
-                    {stat.value}
+                    {stat.value.toLocaleString()}
                   </span>
                 </div>
                 <p className="text-sm text-gray-600 dark:text-gray-400 font-medium truncate">{stat.label}</p>
@@ -605,7 +850,7 @@ export default function AllApplicantsPage() {
                 className="appearance-none bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl px-4 py-3 pr-10 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-all text-gray-900 dark:text-white w-full"
               >
                 <option value="all">Semua Perusahaan</option>
-                {uniqueCompanies.map((company) => (
+                {companies.map((company) => (
                   <option key={company.id} value={company.id.toString()}>
                     {company.nama_perusahaan}
                   </option>
@@ -664,16 +909,13 @@ export default function AllApplicantsPage() {
                             src={application.user.avatar}
                             alt={application.user.name}
                             className="w-16 h-16 rounded-xl object-cover border-2 border-white dark:border-gray-700 shadow-md"
-                            onError={(e) => {
-                              const target = e.target as HTMLImageElement;
-                              target.style.display = 'none';
-                              target.nextElementSibling?.classList.remove('hidden');
-                            }}
+                            onError={handleImageError}
                           />
-                        ) : null}
-                        <div className={`w-16 h-16 rounded-xl border-2 border-white dark:border-gray-700 shadow-md bg-gray-200 dark:bg-gray-700 flex items-center justify-center ${application.user.avatar ? 'hidden' : ''}`}>
-                          <User className="w-8 h-8 text-gray-500 dark:text-gray-400" />
-                        </div>
+                        ) : (
+                          <div className="w-16 h-16 rounded-xl border-2 border-white dark:border-gray-700 shadow-md bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                            <User className="w-8 h-8 text-gray-500 dark:text-gray-400" />
+                          </div>
+                        )}
                         <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
                           <Sparkles className="w-3 h-3 text-white" />
                         </div>
@@ -710,7 +952,7 @@ export default function AllApplicantsPage() {
                           </div>
                           <div className="flex items-center">
                             <Calendar className="w-4 h-4 mr-2 text-purple-500 dark:text-purple-400 flex-shrink-0" />
-                            <span className="truncate">Melamar: {formatDate(application.created_at)}</span>
+                            <span className="truncate">Melamar: {formatDate(application.applied_at || application.created_at)}</span>
                           </div>
                           {application.user.user_profile?.no_telp && (
                             <div className="flex items-center">
@@ -760,7 +1002,7 @@ export default function AllApplicantsPage() {
         </div>
       </div>
 
-      {/* Simple Modal for Applicant Detail */}
+      {/* Modal for Applicant Detail */}
       {showApplicantModal && selectedApplicant && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-99999 p-4">
           <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
@@ -772,16 +1014,13 @@ export default function AllApplicantsPage() {
                       src={selectedApplicant.user.avatar}
                       alt={selectedApplicant.user.name}
                       className="w-16 h-16 rounded-xl object-cover"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.style.display = 'none';
-                        target.nextElementSibling?.classList.remove('hidden');
-                      }}
+                      onError={handleImageError}
                     />
-                  ) : null}
-                  <div className={`w-16 h-16 rounded-xl bg-gray-200 dark:bg-gray-700 flex items-center justify-center ${selectedApplicant.user.avatar ? 'hidden' : ''}`}>
-                    <User className="w-8 h-8 text-gray-500 dark:text-gray-400" />
-                  </div>
+                  ) : (
+                    <div className="w-16 h-16 rounded-xl bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                      <User className="w-8 h-8 text-gray-500 dark:text-gray-400" />
+                    </div>
+                  )}
                   <div>
                     <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
                       {selectedApplicant.user.name}
@@ -830,7 +1069,7 @@ export default function AllApplicantsPage() {
                 <div>
                   <span className="font-medium text-gray-600 dark:text-gray-400">Tanggal Melamar:</span>
                   <p className="text-gray-900 dark:text-white font-medium">
-                    {formatDate(selectedApplicant.created_at)}
+                    {formatDate(selectedApplicant.applied_at || selectedApplicant.created_at)}
                   </p>
                 </div>
                 {selectedApplicant.user.user_profile?.no_telp && (
